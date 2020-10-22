@@ -28,11 +28,9 @@
 #include "svn.h"
 #include "CommandLineParser.h"
 
-#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
-#include <unistd.h>
 
 #include <apr_lib.h>
 #include <apr_getopt.h>
@@ -41,6 +39,7 @@
 #include <svn_fs.h>
 #include <svn_pools.h>
 #include <svn_repos.h>
+#include <svn_time.h>
 #include <svn_types.h>
 #include <svn_version.h>
 
@@ -319,15 +318,6 @@ static bool wasDir(svn_fs_t *fs, int revnum, const char *pathname, apr_pool_t *p
     return is_dir;
 }
 
-time_t get_epoch(const char* svn_date)
-{
-    struct tm tm;
-    memset(&tm, 0, sizeof tm);
-    QByteArray date(svn_date, strlen(svn_date) - 8);
-    strptime(date, "%Y-%m-%dT%H:%M:%S", &tm);
-    return timegm(&tm);
-}
-
 class SvnRevision
 {
 public:
@@ -526,7 +516,14 @@ int SvnRevision::fetchRevProps()
     else
         log.clear();
     authorident = svnauthor ? identities.value(svnauthor->data) : QByteArray();
-    epoch = svndate ? get_epoch(svndate->data) : 0;
+
+    svn_boolean_t svndate_matched = FALSE;
+    apr_time_t svndate_time;
+    if(svndate) {
+        SVN_ERR(svn_parse_date(&svndate_matched,&svndate_time,svndate->data,0,pool));
+    }
+
+    epoch = svndate_matched ? (svndate_time / 1000000 /* usec -> sec */) : 0;
     if (authorident.isEmpty()) {
         if (!svnauthor || svn_string_isempty(svnauthor))
             authorident = "nobody <nobody@localhost>";
