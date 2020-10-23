@@ -14,6 +14,7 @@ VERSTR = '\\"$${VERSION}\\"'  # place quotes around the version string
 DEFINES += VER=\"$${VERSTR}\" # create a VER macro containing the version string
 
 TEMPLATE = app
+CONFIG += cmdline
 TARGET = ../svn-all-fast-export
 
 isEmpty(PREFIX) {
